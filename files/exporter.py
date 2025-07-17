@@ -143,15 +143,22 @@ def format_prometheus_psp(data):
 
 
 class ReqHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        answer = fetch_data(api_key)
-        psp = fetch_psp(api_key)
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(format_prometheus(answer.get("monitors")).encode("utf-8"))
-        self.wfile.write(format_prometheus_psp(psp.get("psps")).encode("utf-8"))
 
+    # Respond to GET requests at /metrics
+    def do_GET(self):
+        if self.path == "/healthcheck":
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write("OK".encode("utf-8"))
+        else:
+            answer = fetch_data(api_key)
+            psp = fetch_psp(api_key)
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(format_prometheus(answer.get("monitors")).encode("utf-8"))
+            self.wfile.write(format_prometheus_psp(psp.get("psps")).encode("utf-8"))
 
 if __name__ == "__main__":
     if "UPTIMEROBOT_API_KEY" in os.environ:
@@ -184,5 +191,6 @@ if __name__ == "__main__":
         server_name = args.server_name
         server_port = args.server_port
 
+    # Start the HTTP server
     httpd = http.server.HTTPServer((server_name, server_port), ReqHandler)
     httpd.serve_forever()
